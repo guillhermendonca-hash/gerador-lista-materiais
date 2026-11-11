@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gerador de Lista de Materiais</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f4f5f2; --panel:#ffffff; --ink:#14181c; --ink-soft:#4a534d;
+  --line:#dce0d8; --line-strong:#c3c9bd; --petrol:#0f3d3a; --petrol-soft:#12514c;
+  --amber:#f2a900; --amber-deep:#c98a00; --alert:#b5432b; --alert-bg:#fbeae5;
+  --mono:'IBM Plex Mono',ui-monospace,monospace; --disp:'Space Grotesk',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+
+header.top{background:var(--petrol);color:#eef2ec;padding:22px clamp(16px,4vw,40px);display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;border-bottom:3px solid var(--amber)}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber)}
+.brand h1{font-family:var(--disp);font-weight:600;font-size:clamp(20px,3vw,28px);margin:0;line-height:1.05}
+.brand .sub{font-size:12.5px;color:#b9c6bf;margin-top:2px}
+.top-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-size:12px;letter-spacing:.04em;border:1px solid rgba(255,255,255,.28);background:transparent;color:#eef2ec;padding:9px 14px;border-radius:2px;cursor:pointer;text-transform:uppercase;transition:.15s}
+.btn:hover{background:rgba(255,255,255,.1)}
+.btn.solid{background:var(--amber);color:#231a00;border-color:var(--amber);font-weight:600}
+.btn.solid:hover{background:var(--amber-deep);color:#fff}
+.btn.ghost{border-color:rgba(255,255,255,.2);color:#cdd8d1}
+
+.wrap{display:grid;grid-template-columns:340px 1fr;gap:0;align-items:start}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}}
+
+aside{position:sticky;top:0;align-self:start;background:var(--panel);border-right:1px solid var(--line);padding:clamp(18px,3vw,26px);min-height:100vh}
+@media(max-width:900px){aside{position:static;min-height:auto;border-right:none;border-bottom:1px solid var(--line)}}
+.panel-title{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--petrol);margin:0 0 16px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.field{margin-bottom:18px}
+.field > label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:7px}
+input[type=number]{width:100%;font-family:var(--mono);font-size:20px;font-weight:500;color:var(--ink);border:1px solid var(--line-strong);border-radius:2px;padding:10px 12px;background:#fbfcfa}
+input[type=number]:focus{outline:2px solid var(--amber);outline-offset:-1px;border-color:var(--amber)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.opt{position:relative}
+.opt input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.opt span{display:block;text-align:center;font-size:12.5px;font-weight:500;padding:9px 8px;border:1px solid var(--line-strong);border-radius:2px;background:#fbfcfa;color:var(--ink-soft);cursor:pointer;transition:.12s;user-select:none}
+.opt input:checked + span{background:var(--petrol);border-color:var(--petrol);color:#fff}
+.opt input:disabled + span{opacity:.38;cursor:not-allowed;background:#f0f1ee}
+.hint{font-size:11px;color:var(--ink-soft);margin-top:6px;line-height:1.45}
+
+main{padding:clamp(16px,3vw,34px) clamp(16px,3vw,40px) 60px}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.cell{background:var(--panel);padding:12px 14px}
+.cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.cell .v{font-family:var(--disp);font-weight:600;font-size:22px;line-height:1.1;margin-top:3px}
+.cell .v small{font-family:var(--body);font-weight:500;font-size:12px;color:var(--ink-soft)}
+.cell.hero{background:var(--petrol);color:#fff}.cell.hero .k{color:var(--amber)}.cell.hero .v{color:#fff}
+
+.warn{display:none;align-items:center;gap:10px;margin:12px 0 0;background:var(--alert-bg);border-left:3px solid var(--alert);color:#7a2c1b;padding:10px 14px;font-size:13px;border-radius:2px}
+.warn.show{display:flex}
+.hiddenbar{display:none;align-items:center;gap:12px;margin:12px 0 0;background:#eef2ec;border:1px solid var(--line);color:var(--ink-soft);padding:9px 14px;font-size:12.5px;border-radius:2px}
+.hiddenbar.show{display:flex}
+.hiddenbar button{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--petrol);background:#fff;color:var(--petrol);padding:5px 12px;border-radius:2px;cursor:pointer}
+.hiddenbar button:hover{background:var(--petrol);color:#fff}
+
+section.block{margin-top:30px}
+.block-head{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.block-head .num{font-family:var(--mono);font-size:12px;color:var(--amber-deep);font-weight:600}
+.block-head h2{font-family:var(--disp);font-size:19px;font-weight:600;margin:0}
+.block-head .count{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.1em}
+
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+thead th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);text-align:left;padding:9px 14px;background:#f0f2ee;border-bottom:1px solid var(--line)}
+th.q,td.q{text-align:center;white-space:nowrap;width:1%}
+th.u,td.u{text-align:left;white-space:nowrap;width:1%;padding-left:10px}
+th.a,td.a{width:1%;white-space:nowrap;text-align:right;padding-right:12px}
+tbody td{padding:9px 14px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+td.item{font-weight:500}
+td.item .obs{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px;font-weight:400}
+td.u{font-family:var(--mono);font-size:11px;color:var(--ink-soft);text-transform:uppercase}
+tbody tr.assume td{background:#fffdf5}
+tbody tr.extra td{background:#f2f7f5}
+tbody tr.edited td.item{box-shadow:inset 3px 0 0 var(--amber)}
+
+.stepper{display:inline-flex;align-items:center;gap:0;border:1px solid var(--line-strong);border-radius:3px;overflow:hidden;background:#fff}
+.stepper button{border:0;background:#f2f4f0;color:var(--ink);width:24px;height:30px;cursor:pointer;font-size:16px;line-height:1;font-family:var(--mono)}
+.stepper button:hover{background:var(--petrol);color:#fff}
+.stepper input{width:58px;height:30px;border:0;border-left:1px solid var(--line);border-right:1px solid var(--line);text-align:center;font-family:var(--mono);font-weight:600;font-size:14px;padding:0}
+.stepper input:focus{outline:2px solid var(--amber);outline-offset:-2px}
+.tool{border:0;background:transparent;cursor:pointer;font-size:14px;color:var(--ink-soft);padding:4px 6px;border-radius:3px}
+.tool:hover{background:#e7ebe6;color:var(--ink)}
+.tool.rm:hover{background:var(--alert-bg);color:var(--alert)}
+.badge{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:1px 5px;border-radius:2px;margin-left:8px;vertical-align:middle}
+.badge.ed{background:#fdf0d0;color:#8a6200}
+.badge.ex{background:#dcece7;color:#0f3d3a}
+
+.addbar{display:flex;gap:8px;align-items:center;margin-top:10px;padding:10px 12px;background:#fbfcfa;border:1px dashed var(--line-strong);border-radius:3px;flex-wrap:wrap}
+.addbar input[type=text]{flex:1 1 220px;min-width:180px;font-family:var(--body);font-size:13px;border:1px solid var(--line-strong);border-radius:2px;padding:8px 10px;background:#fff}
+.addbar .add-qtd{width:70px}
+.addbar .add-un{width:70px}
+.addbar input[type=number]{font-size:14px;padding:8px 8px}
+.addbar input[type=text].add-un{flex:0 0 70px;min-width:0;text-transform:lowercase}
+.addbar button{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--petrol);background:var(--petrol);color:#fff;padding:8px 14px;border-radius:2px;cursor:pointer}
+.addbar button:hover{background:var(--petrol-soft)}
+.addbar .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);width:100%}
+
+body.rapido .only-padrao{display:none}
+body:not(.rapido) .only-rapido{display:none}
+.tipo-proj{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.foot-note{margin-top:26px;font-size:11.5px;color:var(--ink-soft);line-height:1.6;border-top:1px solid var(--line);padding-top:14px}
+.foot-note b{color:var(--ink)}
+
+@media print{
+  header.top .top-actions, aside, .addbar, .stepper button, .tool, thead th.a{display:none}
+  .stepper{border:0;background:transparent}
+  .stepper input{border:0;width:auto;font-size:13px;text-align:right}
+  .wrap{grid-template-columns:1fr}
+  body{background:#fff}
+  main{padding:0}
+  header.top{background:#fff;color:#000;border-bottom:2px solid #000}
+  .brand .eyebrow,.brand .sub{color:#000}
+  .cell.hero{background:#eee;color:#000}.cell.hero .k,.cell.hero .v{color:#000}
+  table,section.block{break-inside:avoid}
+  section.sugestoes{display:none}
+}
+
+/* Seletor de modelo de micro (Projeto Rápido) */
+select{width:100%;font-family:var(--body);font-size:13px;border:1px solid var(--line-strong);border-radius:2px;padding:9px 10px;background:#fbfcfa;color:var(--ink)}
+select:focus{outline:2px solid var(--amber);outline-offset:-1px}
+
+/* Avisos empilhados */
+.warn{flex-direction:column;align-items:flex-start;gap:6px}
+
+/* Sugestões do Projeto Rápido (fora da lista até o usuário adicionar) */
+section.sugestoes.vazia{display:none}
+section.sugestoes table{border-style:dashed;background:#fbfcfa}
+section.sugestoes td.item{color:var(--ink-soft)}
+section.sugestoes td.q{font-family:var(--mono);font-weight:600}
+.sug-nota{font-size:12px;color:var(--ink-soft);margin:0 0 8px}
+.btn-sug{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em;border:1px solid var(--petrol);background:#fff;color:var(--petrol);padding:6px 10px;border-radius:2px;cursor:pointer}
+.btn-sug:hover{background:var(--petrol);color:#fff}
+
+/* Confirmação do "Limpar edições" e avisos de ação */
+.btn.confirmar{background:var(--alert-bg);color:var(--alert);border-color:var(--alert)}
+.aviso-acao{flex-basis:100%;margin:6px 0 0;font-size:12px;text-align:right;color:#eef2ec}
+
+/* Celular: nada passa da largura da tela; tabelas mais compactas */
+main, aside{min-width:0}
+@media(max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){
+  tbody td{padding:8px 8px}
+  thead th{padding:8px}
+  th.u,td.u{padding-left:4px}
+  th.a,td.a{padding-right:6px}
+  td.item{font-size:13px;overflow-wrap:anywhere}
+  .stepper button{width:22px}
+  .stepper input{width:40px;font-size:13px}
+  .tool{padding:4px 3px}
+  .addbar input[type=text]{min-width:0}
+  section.sugestoes .btn-sug{padding:6px 7px}
+}
+
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="eyebrow" id="eyebrow">Ficha de obra · micro inversor</div>
+    <h1>Lista de materiais mínimos</h1>
+    <div class="sub" id="subtitulo">Gera Kit Solar · Miscelâneas · Padrão de entrada — editável e com materiais avulsos</div>
+  </div>
+  <div class="top-actions">
+    <button class="btn ghost" id="btn-limpar">Limpar edições</button>
+    <button class="btn" id="btn-imprimir">Imprimir / PDF</button>
+    <button class="btn solid" id="btn-csv">Baixar CSV</button>
+    <p class="aviso-acao" id="aviso-acao" role="status" hidden></p>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside>
+    <p class="panel-title">Dados da obra</p>
+    <div class="field tipo-proj">
+      <label>Tipo de projeto</label>
+      <div class="seg grid2">
+        <label class="opt"><input type="radio" name="tipo" value="padrao" checked><span>Padrão</span></label>
+        <label class="opt"><input type="radio" name="tipo" value="rapido"><span>Projeto Rápido</span></label>
+      </div>
+      <p class="hint only-rapido" id="hint-rapido"></p>
+    </div>
+    <div class="field only-rapido">
+      <label for="micro">Modelo do micro inversor</label>
+      <select id="micro"></select>
+      <p class="hint" id="hint-micro"></p>
+    </div>
+    <div class="field">
+      <label for="placas">Quantidade de placas <span style="color:var(--ink-soft);font-weight:400" id="lbl-wp"></span></label>
+      <input id="placas" type="number" min="1" step="1" value="12">
+    </div>
+    <div class="field">
+      <label>Ligação do cliente</label>
+      <div class="seg grid2">
+        <label class="opt"><input type="radio" name="lig" value="bifasico" checked><span>Bifásico</span></label>
+        <label class="opt"><input type="radio" name="lig" value="trifasico"><span>Trifásico</span></label>
+      </div>
+      <p class="hint only-padrao" id="hint-tri"></p>
+    </div>
+    <div class="field only-rapido">
+      <label for="disjMed">Disjuntor do padrão de entrada (medidor)</label>
+      <select id="disjMed"></select>
+      <p class="hint">Define a bitola do cabo medidor → Quadro do Sistema.</p>
+    </div>
+    <div class="field only-rapido">
+      <label>Vai trocar o disjuntor do medidor?</label>
+      <div class="seg grid2">
+        <label class="opt"><input type="radio" name="trocar" value="nao" checked><span>Não</span></label>
+        <label class="opt"><input type="radio" name="trocar" value="sim"><span>Sim</span></label>
+      </div>
+      <p class="hint">Sim: o disjuntor entra na Miscelânea. Não: fica nas sugestões, no fim da lista.</p>
+    </div>
+    <div class="field only-padrao">
+      <label>Instalação</label>
+      <div class="seg grid2">
+        <label class="opt"><input type="radio" name="inst" value="sobrepor" checked><span>Sobrepor</span></label>
+        <label class="opt"><input type="radio" name="inst" value="embutir"><span>Embutir</span></label>
+      </div>
+      <p class="hint">Embutir remove eletroduto, luvas e curvas.</p>
+    </div>
+    <div class="field only-padrao">
+      <label>Tipo de telhado</label>
+      <div class="seg grid2">
+        <label class="opt"><input type="radio" name="telh" value="metalico" checked><span>Metálico</span></label>
+        <label class="opt"><input type="radio" name="telh" value="colonial"><span>Colonial</span></label>
+        <label class="opt"><input type="radio" name="telh" value="fibrocimento"><span>Fibrocimento</span></label>
+        <label class="opt"><input type="radio" name="telh" value="laje"><span>Laje</span></label>
+      </div>
+    </div>
+    <div class="field only-padrao">
+      <label>Tipo de estrutura</label>
+      <div class="seg grid3">
+        <label class="opt"><input type="radio" name="estr" value="madeira" checked><span>Madeira</span></label>
+        <label class="opt"><input type="radio" name="estr" value="metalica"><span>Metálica</span></label>
+        <label class="opt"><input type="radio" name="estr" value="laje"><span>Laje</span></label>
+      </div>
+      <p class="hint" id="hint-estr"></p>
+    </div>
+    <div class="field">
+      <label for="dist">Distância placas → <span class="only-padrao">quadro</span><span class="only-rapido">Quadro do Sistema</span> (m)</label>
+      <input id="dist" type="number" min="0" step="1" value="15">
+      <p class="hint only-padrao" id="hint-tronco"></p>
+      <p class="hint only-rapido">Entra no cabo 6 mm² 1kV, no cabo verde, no peveduto e no Seal Tubo.</p>
+    </div>
+    <div class="field">
+      <label for="dist2">Distância <span class="only-padrao">quadro</span><span class="only-rapido">Quadro do Sistema</span> → medidor (m)</label>
+      <input id="dist2" type="number" min="0" step="1" value="10">
+      <p class="hint only-padrao">Metragem dos cabos do padrão de entrada.</p>
+      <p class="hint only-rapido">Entra no cabo do medidor (fases + neutro), no peveduto e no Seal Tubo.</p>
+    </div>
+    <div class="field only-rapido">
+      <label for="dist3">Distância Quadro do Sistema → aterramento (m)</label>
+      <input id="dist3" type="number" min="0" step="1" value="5">
+      <p class="hint" id="hint-dist3"></p>
+    </div>
+  </aside>
+
+  <main>
+    <div class="readout" id="readout"></div>
+    <div class="warn" id="warn"></div>
+    <div class="hiddenbar" id="hiddenbar"></div>
+
+    <section class="block" data-sec="kit">
+      <div class="block-head"><span class="num">01</span><h2 class="sec-nome"></h2><span class="count"></span></div>
+      <table><thead><tr><th>Item</th><th class="q">Qtd</th><th class="u">Un</th><th class="a"></th></tr></thead><tbody></tbody></table>
+      <div class="addbar">
+        <span class="lbl"></span>
+        <input type="text" class="add-name" list="catalogo" placeholder="Buscar na tabela ou digitar…">
+        <input type="number" class="add-qtd" value="1" min="0" step="1">
+        <input type="text" class="add-un" value="un">
+        <button class="add-btn">+ Adicionar</button>
+      </div>
+    </section>
+
+    <section class="block" data-sec="mis">
+      <div class="block-head"><span class="num">02</span><h2 class="sec-nome"></h2><span class="count"></span></div>
+      <table><thead><tr><th>Item</th><th class="q">Qtd</th><th class="u">Un</th><th class="a"></th></tr></thead><tbody></tbody></table>
+      <div class="addbar">
+        <span class="lbl"></span>
+        <input type="text" class="add-name" list="catalogo" placeholder="Buscar na tabela ou digitar…">
+        <input type="number" class="add-qtd" value="1" min="0" step="1">
+        <input type="text" class="add-un" value="un">
+        <button class="add-btn">+ Adicionar</button>
+      </div>
+    </section>
+
+    <section class="block only-padrao" data-sec="pad">
+      <div class="block-head"><span class="num">03</span><h2 class="sec-nome"></h2><span class="count"></span></div>
+      <table><thead><tr><th>Item</th><th class="q">Qtd</th><th class="u">Un</th><th class="a"></th></tr></thead><tbody></tbody></table>
+      <div class="addbar">
+        <span class="lbl"></span>
+        <input type="text" class="add-name" list="catalogo" placeholder="Buscar na tabela ou digitar…">
+        <input type="number" class="add-qtd" value="1" min="0" step="1">
+        <input type="text" class="add-un" value="un">
+        <button class="add-btn">+ Adicionar</button>
+      </div>
+    </section>
+
+    <section class="block sugestoes only-rapido" data-sec="sug">
+      <div class="block-head"><span class="num">+</span><h2 class="sec-nome"></h2><span class="count"></span></div>
+      <p class="sug-nota">Itens fora da lista. Clique em <b>Adicionar</b> para levar um deles para o fim da Miscelânea.</p>
+      <table><thead><tr><th>Item</th><th class="q">Qtd</th><th class="u">Un</th><th class="a"></th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <p class="foot-note" id="premissas"></p>
+  </main>
+</div>
+
+<datalist id="catalogo"></datalist>
+
+<!-- Scripts clássicos (sem módulos) para a página abrir direto do arquivo, sem servidor -->
+<script>
+/* js/config.js */
+/* =====================================================================
+   CONFIGURAÇÃO — todas as constantes e tabelas de engenharia ficam aqui.
+   A engenharia ajusta estas regras com frequência: mude só este arquivo.
+   ===================================================================== */
+(function (raiz) {
+  var GLM = raiz.GLM = raiz.GLM || {};
+
+  GLM.config = {
+    /* ---------- Constantes comuns (Padrão e Projeto Rápido) ---------- */
+    WP_PLACA: 620,              // potência da placa (Wp)
+    W_MICRO: 2500,              // potência do micro (W) — tipo Padrão
+    PLACAS_P_MICRO: 6,
+    MICROS_P_CIRC: 3,           // tipo Padrão (no Rápido vem do modelo do micro)
+    MC4_PARES_PLACA: 2,
+    PLACAS_P_CAIXA: 4,          // placas por caixa de estrutura
+    SELANTE_CADA: 10,           // 1 selante PU a cada N placas
+
+    /* ---------- Tipo Padrão ---------- */
+    // Metragens = média entre a lista Critéria e a Calculadora Multiluz (decisão de 28/10/2026)
+    PADRAO_FV_METROS_PLACA: 4.25, // cabo FV por placa, cada cor (m) — média de 6 e 2,5; total arredondado p/ cima
+    TRONCO_P_CIRC: 70,          // m de cabo tronco por circuito — média de 90 e 50
+    VERDE_BASE: 50,             // m mínimos de cabo verde — média de 70 e 25 (47,5 → 50)
+    SIKADUR_CADA: 5,            // 1 sikadur a cada N placas (estrutura laje)
+    ELETRODUTO_MIN: 3,          // mínimo de eletrodutos de 3 m
+    ELETRODUTO_COMPR: 3,        // comprimento do eletroduto (m)
+    // Trifásico obrigatório a partir de N micros ou acima de N circuitos
+    TRI_MIN_MICROS: 6,
+    TRI_MAX_CIRC_BI: 2,
+    LIMITE_MICROGERACAO_KW: 75,  // acima disso a interface avisa (fim da tabela do padrão de entrada)
+
+    /* ---------- Projeto Rápido ---------- */
+    RAPIDO_MAX_PLACAS: 18,
+    RAPIDO_FOLGA_CABO: 1.5,     // +50% nas metragens por distância
+    RAPIDO_SEAL_FRACAO: 0.5,    // Seal Tubo = 50% da soma das distâncias
+    RAPIDO_CABOS_CIRC: 3,       // cabos 6 mm² 1kV por circuito (Quadro do Sistema → placas)
+    RAPIDO_FV_METROS_PLACA: 6,  // cabo FV por placa, cada cor (m)
+    // Decisões de 28/10/2026:
+    RAPIDO_DISJ_SISTEMA_POLOS: '2P',   // disjuntor do sistema sempre 50A-2P
+    RAPIDO_ABRACADEIRA_P_ELETRODUTO: 3,
+    RAPIDO_ARRED_M: 5,          // metragens arredondadas p/ cima no múltiplo de 5
+    // Decisões de 11/11/2026:
+    RAPIDO_PEVEDUTO_BASE: 30,          // m de peveduto até essa soma das 3 distâncias…
+    RAPIDO_PEVEDUTO_FATOR: 1.5,        // …e 1,5 m a mais por metro que passar dela
+    RAPIDO_PERNAS_ATERRAMENTO: 2,      // cabo verde: 2 pernas do Quadro do Sistema ao aterramento
+    RAPIDO_FIXOS: {             // quantidades fixas da Miscelânea
+      haste: 3, cordoalha: 5, grampo: 3, bep: 1, quadro: 2, disjMedidor: 1, disjCliente: 1,
+      eletroduto: 3, condulete: 3, placaGeracao: 1, tubular: 40, sacoEntulho: 2
+    },
+    RAPIDO_PARAFUSO_P_MICRO: 2,
+    // Modelos de micro do Projeto Rápido. Para incluir outro modelo, acrescente
+    // uma entrada aqui; a interface lista todos e o cálculo usa o escolhido.
+    // Todos usam o disjuntor 50A do sistema e o cabo 6 mm² 1kV por circuito.
+    RAPIDO_MICROS: {
+      tsunees_2_5: { nome: 'Tsunees 2,5 kW', w: 2500, placasPorMicro: 6, microsPorCircuito: 3 },
+      hyxi_2000: { nome: 'Hyxi HYX-M2000-S (2 kW)', w: 2000, placasPorMicro: 4, microsPorCircuito: 4 }  // datasheet V1.0-2025: 2000 VA, 4 placas 400–670 W; o fabricante indica 3 por ramal 10 AWG — mantidos 4 por decisão da engenharia (6 mm² + 50A)
+    },
+    // Disjuntor do padrão de entrada (medidor) → cabo de cobre medidor→Quadro do Sistema.
+    // Mesma coluna "cu" da tabela do padrão de entrada do tipo Padrão.
+    RAPIDO_DISJ_MEDIDOR: [
+      { disj: '50A', cabo: '10 mm² 750V' },
+      { disj: '63A', cabo: '16 mm² 750V' },
+      { disj: '80A', cabo: '25 mm² 750V' },
+      { disj: '100A', cabo: '35 mm² 1kV' },
+      { disj: '125A', cabo: '35 mm² 1kV' }
+    ],
+    RAPIDO_DISJ_MEDIDOR_PADRAO: '50A',
+    RAPIDO_MICRO_PADRAO: 'tsunees_2_5',
+
+    /* ---------- Eletroduto (NBR 5410) ---------- */
+    OD_CABO_6MM: 6.5,           // Ø externo do cabo 6 mm² (mm) — ajuste conforme fabricante
+    // Diâmetro interno útil aproximado (mm) por polegada comercial (PVC)
+    ELETRODUTOS: [
+      { pol: '1/2"', di: 15.8 }, { pol: '3/4"', di: 21.0 }, { pol: '1"', di: 26.5 },
+      { pol: '1.1/4"', di: 35.0 }, { pol: '1.1/2"', di: 40.0 }, { pol: '2"', di: 51.0 },
+      { pol: '2.1/2"', di: 64.0 }, { pol: '3"', di: 76.0 }, { pol: '4"', di: 101.6 }
+    ],
+    // Taxa máxima de ocupação: 1 cabo 53%, 2 cabos 31%, 3+ cabos 40%
+    TAXA_OCUPACAO: { 1: 0.53, 2: 0.31, mais: 0.40 },
+
+    /* ---------- Disjuntor geral (Padrão, se micros > 6) ---------- */
+    DISJ_GERAL: [
+      { ateMicros: 6, disj: null },
+      { ateMicros: 8, disj: '63A-3P', cabo: '16 mm² PVC 750V' },
+      { ateMicros: 10, disj: '80A-3P', cabo: '25 mm² PVC 750V' },
+      { ateMicros: 12, disj: '100A-3P', cabo: '25 mm² EPR 1kV' },
+      { ateMicros: 17, disj: '125A-3P (DIN)', cabo: '35 mm² EPR 1kV' },
+      { ateMicros: 21, disj: '150A-3P (CM)', cabo: '50 mm² EPR 1kV' },
+      { ateMicros: 25, disj: '175A-3P', cabo: '70 mm² EPR 1kV' },
+      { ateMicros: Infinity, disj: '200A-3P', cabo: '95 mm² EPR 1kV' }
+    ],
+
+    /* ---------- Padrão de entrada (Padrão), pela potência CA ---------- */
+    TAB_PADRAO_ENTRADA: [
+      { kw: 6, al: '16 mm² 1kV', cu: '10 mm² 750V', fn: '10 mm² 750V', pe: '10 mm² 750V', disj: '50A', barr: '150A' },
+      { kw: 8, al: '16 mm² 1kV', cu: '10 mm² 750V', fn: '10 mm² 750V', pe: '10 mm² 750V', disj: '50A', barr: '150A' },
+      { kw: 10, al: '25 mm² 1kV', cu: '16 mm² 750V', fn: '16 mm² 750V', pe: '16 mm² 750V', disj: '63A', barr: '150A' },
+      { kw: 15, al: '25 mm² 1kV', cu: '16 mm² 750V', fn: '16 mm² 750V', pe: '16 mm² 750V', disj: '63A', barr: '150A' },
+      { kw: 20, al: '35 mm² 1kV', cu: '25 mm² 750V', fn: '25 mm² 750V', pe: '16 mm² 750V', disj: '63A', barr: '150A' },
+      { kw: 25, al: '35 mm² 1kV', cu: '25 mm² 750V', fn: '25 mm² 750V', pe: '25 mm² 750V', disj: '80A', barr: '200A' },
+      { kw: 26, al: '50 mm² 1kV', cu: '35 mm² 1kV', fn: '25 mm² 1kV', pe: '25 mm² 1kV', disj: '100A', barr: '200A' },
+      { kw: 28, al: '50 mm² 1kV', cu: '35 mm² 1kV', fn: '35 mm² 1kV', pe: '25 mm² 1kV', disj: '125A', barr: '200A' },
+      { kw: 30, al: '50 mm² 1kV', cu: '35 mm² 1kV', fn: '35 mm² 1kV', pe: '25 mm² 1kV', disj: '125A', barr: '200A' },
+      { kw: 40, al: '70 mm² 1kV', cu: '50 mm² 1kV', fn: '35 mm² 1kV', pe: '25 mm² 1kV', disj: '125A', barr: '200A' },
+      { kw: 50, al: '95 mm² 1kV', cu: '70 mm² 1kV', fn: '50 mm² 1kV', pe: '35 mm² 1kV', disj: '150A', barr: '280A' },
+      { kw: 60, al: '95 mm² 1kV', cu: '95 mm² 1kV', fn: '70 mm² 1kV', pe: '50 mm² 1kV', disj: '175A', barr: '280A' },
+      { kw: 75, al: '95 mm² 1kV', cu: '95 mm² 1kV', fn: '95 mm² 1kV', pe: '50 mm² 1kV', disj: '200A', barr: '420A' }
+    ]
+  };
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script>
+/* js/catalogo.js */
+/* Catálogo de materiais para a busca do material avulso (tabela de compras, sem preços). */
+(function (raiz) {
+  var GLM = raiz.GLM = raiz.GLM || {};
+
+  GLM.CATALOGO = [
+    "Parafuso autobrocante", "Barramento BEP",
+    "Microinversor Tsunees 2,5 kW", "Suporte para microinversor", "Par MC4 fêmea + macho Stäubli", "Parafuso + porca (fixação do micro)",
+    "Caixa estrutura metálica mini trilho alto", "DPS Clamper 175V 45kA", "Quadro de distribuição 12P sobrepor", "Eletroduto PVC 3/4\"",
+    "Luva galv. s/ rosca 3/4\"", "Peveduto 3/4\"", "Condulete FG 3/4\"", "Adaptador p/ condulete 3/4\"", "Tampa p/ condulete 3/4\"",
+    "Abraçadeira metálica com cunha 3/4\"", "Seal Tubo", "Terminal tubular 6mm",
+    "Cabo cobre 6mm 750V", "Cabo cobre 6mm 1kV", "Cabo cobre 10mm 750V", "Cabo cobre 16mm 750V", "Cabo cobre 16mm 1kV",
+    "Cabo cobre 25mm", "Cabo coberto Al bloqueado 35mm", "Cabo cobre nu 50mm (cordoalha)", "Cabo cobre 95mm 1kV", "Cabo elet. flex 120mm PT",
+    "Broca AR 6,00mm x93mm", "Broca AR 8,00mm x117mm", "Broca AR 10,00mm x133mm", "Conector PF/KS 10mm", "Conector PF/KS 16mm", "Conector PF/KS 95mm",
+    "Fita isol. alta fusão 19mm x10m", "Parafuso francês 3/8", "Parafuso francês 5/8", "Porca quad. 5/8", "Serra copo p/metal A01923",
+    "Terminal a compressão 1F1C TM-70mm", "Terminal pré-isol. olhal 10,0mm", "Terminal pré-isol. olhal 16,0mm", "Terminal pré-isol. olhal 25,0mm",
+    "Terminal pré-isol. olhal 4,0-6mm", "Terminal pré-isol. olhal 95mm", "Parafuso sext. bicromatizado 1/4\"", "Barra de cobre chata (12,71 mm)",
+    "Disjuntor 16A 2P", "Disjuntor 20A 2P", "Disjuntor 20A 3P", "Disjuntor 32A 2P", "Disjuntor 32A 3P", "Disjuntor 40A 2P", "Disjuntor 50A 2P",
+    "Disjuntor 50A 3P", "Disjuntor 63A 2P", "Disjuntor 63A 3P", "Disjuntor 80A 3P", "Disjuntor 100A 3P", "Disjuntor No Fuse 125A 3P",
+    "Disjuntor No Fuse 160A 3P", "Disjuntor No Fuse 200A 3P", "DPS Clamper 1745 5kA", "DPS Clamper 60kA 175V",
+    "Adaptador para condulete 1.1/2\"", "Adaptador para condulete 1\"", "Adaptador para condulete 2\"", "Arruela", "Areia", "Bloquete",
+    "Bloco de distribuição 80A", "Box reto A01923", "Braço/suporte crede compacta 13,8kV", "Cimento", "Clamp intermediário", "Clamp final",
+    "Cantoneira 2\"", "Condulete FG 1.1/2\"", "Condulete FG Tramontina 1\"", "Condulete FG Tramontina 2\"", "Cobertura de policarbonato",
+    "Eletrocalha perf. 100x100", "Eletrocalha perf. 200x100", "Gancho suspensão olhal", "Grampo de terra GTDU 3/4\"",
+    "Haste de aterramento 5/8 2,40m", "Isolador ancoragem polimérico 15kV", "Isolador paralelo", "Manilha sapatilha", "Manta adesiva asfáltica",
+    "Para-raio AT polimérico 12kV 10kA", "Placa de geração", "Pontalete bifásico 3 estribos", "Prensa cabo 1.1/2", "Prensa cabo 1.1/4",
+    "Relé falta fase 200-240V", "Selante poliuretano PU", "Sikadur", "Tampa eletrocalha 200mm x3,0m",
+    "Caixa barramento trif. 150A", "Caixa barramento trif. 200A", "Caixa barramento trif. 420A 12 disj.", "Caixa de medição bifásica",
+    "Caixa de medição trifásica", "Caixa PVC 4x4", "Placa cega 4x4", "Quadro de comando 20x20x12", "Quadro de comando 30x20x20",
+    "Quadro de comando 30x30x20", "Quadro de comando 40x30x20", "Quadro de comando 40x40x20", "Quadro de comando 50x50x25",
+    "Quadro de comando 60x50x20", "Quadro de comando 80x60x20", "Quadro de distribuição EMB 6P", "Quadro de distribuição EMB 8P",
+    "Quadro de distribuição SOB 6P", "Quadro de distribuição SOB 8P", "Quadro de distribuição EMB c/barramento 5 módulos",
+    "Quadro de distribuição EMB c/barramento 9 módulos", "Quadro de distribuição EMB c/barramento 12 módulos",
+    "Quadro de distribuição EMB c/barramento 24 módulos", "Quadro de distribuição EMB c/barramento 36 módulos",
+    "Quadro de distribuição SOB c/barramento 9 módulos", "Quadro de distribuição SOB c/barramento 12 módulos",
+    "Quadro de distribuição SOB c/barramento 24 módulos", "Quadro de distribuição SOB s/barramento 5 módulos",
+    "Quadro de distribuição SOB s/barramento 9 módulos", "Curva elet. galv. 1.1/2", "Curva PVC 1\"", "Curva PVC 1.1/2", "Curva PVC 2\"",
+    "Curva PVC 4\"", "Curva eletroduto PVC 2.1/2\"", "Eletroduto galv 1\"", "Eletroduto PVC 1\"", "Eletroduto PVC 1.1/2", "Eletroduto PVC 2\"",
+    "Eletroduto PVC 4\"", "Luva galv 1.1/2", "Luva PVC 1.1/2", "Luva PVC 2\"", "Luva PVC 4\"", "Peveduto 1.1/2", "Unidut reto 1\""
+  ];
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script>
+/* js/calculo.js */
+/* =====================================================================
+   NÚCLEO DE CÁLCULO — funções puras, sem DOM.
+   GLM.calcular(entrada, edicoes) → resumo da obra + seções com itens
+   { id, item, qtd, un, obs, confirmar }.
+
+   entrada (Padrão):  { tipo:'padrao', placas, lig, inst, telh, estr, dist, dist2 }
+   entrada (Rápido):  { tipo:'rapido', placas, lig, dist, dist2, dist3, micro?, disjMed?, trocarDisj? }
+   edicoes (opcional): { overrides:{id:qtd}, hidden:[id], aceitas:[id] } — usadas apenas
+   no Rápido: itens "efetivos" seguem a quantidade final de outro item, e as
+   sugestões aceitas passam da seção sug para o fim da Miscelânea.
+   ===================================================================== */
+(function (raiz) {
+  var GLM = raiz.GLM = raiz.GLM || {};
+  var C = GLM.config;
+
+  /* ---------- utilitários ---------- */
+  function teto(x) { return Math.ceil(x) || 0; }
+  // Arredonda para cima no múltiplo de m (tolerância evita 15.000000001 → 20)
+  function tetoMult(x, m) { return Math.ceil(x / m - 1e-9) * m; }
+  function teto5(x) { return tetoMult(x, 5); }
+  function fmt(n) { return (Math.round(n * 100) / 100).toString().replace('.', ','); }
+  function inteiro(v) { return Math.max(0, Math.floor(+v || 0)); }
+  function numero(v) { return Math.max(0, +v || 0); }
+
+  function R(id, item, qtd, un, obs, confirmar) {
+    return { id: id, item: item, qtd: qtd, un: un, obs: obs || '', confirmar: !!confirmar };
+  }
+
+  // Quantidade final de um item, considerando edição ou remoção do usuário
+  function efetiva(edicoes, id, valor) {
+    if (!edicoes) return valor;
+    if (edicoes.hidden && edicoes.hidden.indexOf(id) >= 0) return 0;
+    var o = edicoes.overrides && edicoes.overrides[id];
+    return o !== undefined ? +o : valor;
+  }
+
+  /* ---------- tabelas ---------- */
+  function disjGeral(micros) {
+    for (var i = 0; i < C.DISJ_GERAL.length; i++) {
+      var r = C.DISJ_GERAL[i];
+      if (micros <= r.ateMicros) return r.disj ? r : null;
+    }
+    return null;
+  }
+  function linhaPadraoEntrada(kw) {
+    var t = C.TAB_PADRAO_ENTRADA;
+    for (var i = 0; i < t.length; i++) if (kw <= t[i].kw) return t[i];
+    return t[t.length - 1];
+  }
+  function taxaMaxOcup(n) { return n === 1 ? C.TAXA_OCUPACAO[1] : n === 2 ? C.TAXA_OCUPACAO[2] : C.TAXA_OCUPACAO.mais; }
+
+  // Escolhe o menor eletroduto cuja área interna comporta n cabos 6 mm² na taxa NBR 5410
+  function dimensionarEletroduto(n) {
+    var areaCabos = n * Math.PI / 4 * C.OD_CABO_6MM * C.OD_CABO_6MM;
+    var tx = taxaMaxOcup(n);
+    var areaMin = areaCabos / tx;
+    var diMin = Math.sqrt(4 * areaMin / Math.PI);
+    var lista = C.ELETRODUTOS, esc = lista[lista.length - 1];
+    for (var i = 0; i < lista.length; i++) {
+      if (Math.PI / 4 * lista[i].di * lista[i].di >= areaMin) { esc = lista[i]; break; }
+    }
+    var ocup = areaCabos / (Math.PI / 4 * esc.di * esc.di) * 100;
+    return { pol: esc.pol, di: esc.di, diMin: diMin, ocup: ocup, n: n, tx: tx };
+  }
+
+  /* =================== TIPO PADRÃO =================== */
+  function calcularPadrao(e) {
+    var nPlacas = inteiro(e.placas);
+    var dist = numero(e.dist), dist2 = numero(e.dist2);
+    var inst = e.inst || 'sobrepor', telh = e.telh || 'metalico', estr = e.estr || 'madeira';
+    var ligEsc = e.lig || 'bifasico';
+    var micros = teto(nPlacas / C.PLACAS_P_MICRO);
+    var circuitos = teto(micros / C.MICROS_P_CIRC);
+    var potCC = nPlacas * C.WP_PLACA / 1000, potCA = micros * C.W_MICRO / 1000;
+    var forcaTri = micros >= C.TRI_MIN_MICROS || circuitos > C.TRI_MAX_CIRC_BI;
+    var ligacao = forcaTri ? 'trifasico' : ligEsc;
+    var tri = ligacao === 'trifasico';
+    var linha = linhaPadraoEntrada(potCA), dg = disjGeral(micros);
+
+    /* KIT SOLAR */
+    var kit = [];
+    kit.push(R('placa', 'Placa solar ' + C.WP_PLACA + ' Wp', nPlacas, 'un'));
+    kit.push(R('micro', 'Micro inversor ' + fmt(C.W_MICRO / 1000) + ' kW', micros, 'un', 'até ' + C.PLACAS_P_MICRO + ' placas por micro'));
+    if (telh === 'metalico') {
+      kit.push(R('est_minitrilho', 'Caixa estrutura mini trilho (kit fechado)', teto(nPlacas / C.PLACAS_P_CAIXA), 'cx', '1 a cada ' + C.PLACAS_P_CAIXA + ' placas'));
+      kit.push(R('est_selante', 'Selante PU', teto(nPlacas / C.SELANTE_CADA), 'un', '1 a cada ' + C.SELANTE_CADA + ' placas'));
+    } else if (telh === 'colonial' || telh === 'fibrocimento') {
+      kit.push(R('est_caixa', 'Caixa de estrutura', teto(nPlacas / C.PLACAS_P_CAIXA), 'cx', C.PLACAS_P_CAIXA + ' placas por caixa'));
+      kit.push(R('est_perfil', 'Perfil de estrutura', nPlacas, 'un', '1 por placa'));
+    } else if (telh === 'laje') {
+      kit.push(R('laje_bloquete', 'Bloquete', nPlacas, 'un', '1 por placa'));
+      kit.push(R('laje_cantoneira', 'Cantoneira 2"', nPlacas, 'un', '1 por placa'));
+      kit.push(R('laje_perfil', 'Perfil de estrutura', nPlacas, 'un', '1 por placa'));
+    }
+    if (estr === 'laje')
+      kit.push(R('sikadur', 'Sikadur', teto(nPlacas / C.SIKADUR_CADA), 'un', '1 a cada ' + C.SIKADUR_CADA + ' placas (estrutura laje)'));
+    kit.push(R('mc4', 'Par de conector MC4', nPlacas * C.MC4_PARES_PLACA, 'par', C.MC4_PARES_PLACA + ' pares por placa'));
+    var fv = teto(nPlacas * C.PADRAO_FV_METROS_PLACA - 1e-9), obsFv = fmt(C.PADRAO_FV_METROS_PLACA) + ' m por placa';
+    kit.push(R('fv_preto', 'Cabo fotovoltaico preto', fv, 'm', obsFv));
+    kit.push(R('fv_vermelho', 'Cabo fotovoltaico vermelho', fv, 'm', obsFv));
+    kit.push(R('cabo_tronco', 'Cabo Cu 6 mm² 1kV (tronco)', teto(dist + C.TRONCO_P_CIRC * circuitos - 1e-9), 'm',
+      'distância (' + dist + ' m) + ' + C.TRONCO_P_CIRC + ' m × ' + circuitos + ' circuito(s)'));
+
+    /* MISCELÂNEAS */
+    var mis = [], polar = tri ? '3P' : '2P';
+    mis.push(R('disj_tronco', 'Disjuntor 50A ' + polar + ' (proteção de tronco)', circuitos, 'un', '1 por cabo tronco / circuito'));
+    if (dg) mis.push(R('disj_geral', 'Disjuntor geral ' + dg.disj, 1, 'un', 'cabo do geral: ' + dg.cabo));
+    mis.push(R('quadro_12pvc', 'Quadro 12 DIN PVC', 1, 'un', 'blocos de distribuição + DPS'));
+    mis.push(R('bloco_dist', 'Bloco de distribuição', tri ? 4 : 3, 'un', tri ? 'trifásico: 4 blocos' : 'bifásico: 3 blocos'));
+    mis.push(R('dps', 'DPS Clamper 1745', tri ? 3 : 2, 'un', tri ? 'trifásico: 3 DPS' : 'bifásico: 2 DPS'));
+    mis.push(R('gnd_haste', 'Haste de aterramento 5/8" 2,40 m', 3, 'un', 'kit aterramento'));
+    mis.push(R('gnd_cord', 'Cabo de cobre nu 50 mm² (cordoalha)', 5, 'm', 'kit aterramento'));
+    mis.push(R('gnd_grampo', 'Grampo de terra GTDU 3/4"', 3, 'un', 'kit aterramento'));
+    var compVerde = Math.max(C.VERDE_BASE, Math.round(dist));
+    mis.push(R('cabo_verde', 'Cabo Cu 6 mm² 750V verde (terra)', compVerde, 'm', compVerde > C.VERDE_BASE ? 'ajustado pela distância' : C.VERDE_BASE + ' m base'));
+    mis.push(R('bep', 'Barramento BEP', 1, 'un', 'equipotencialização principal'));
+    if (inst === 'sobrepor') {
+      var condPorCirc = tri ? 5 : 3;            // 3F+N+T ou F+N+T
+      var nCond = condPorCirc * circuitos;
+      var duto = dimensionarEletroduto(nCond);
+      var qE = Math.max(C.ELETRODUTO_MIN, teto(dist / C.ELETRODUTO_COMPR));
+      mis.push(R('eletroduto', 'Eletroduto ' + C.ELETRODUTO_COMPR + ' m ' + duto.pol, qE, 'un',
+        'mínimo ' + C.ELETRODUTO_MIN + ' · ' + nCond + ' cond. 6mm² (' + condPorCirc + '/circ × ' + circuitos + ') · ocupação ' +
+        duto.ocup.toFixed(0) + '% (máx ' + (duto.tx * 100) + '%) · Ø int. mín ' + duto.diMin.toFixed(1) + ' mm'));
+      var curvas = qE <= 1 ? 0 : qE;
+      mis.push(R('luva', 'Luva para eletroduto', 2 * qE + 2 * curvas, 'un', '2 por eletroduto + 2 por curva'));
+      mis.push(R('curva', 'Curva para eletroduto', curvas, 'un', qE <= 1 ? '≤ 1 eletroduto: sem curvas' : '1 por eletroduto'));
+    }
+
+    /* PADRÃO DE ENTRADA */
+    var pad = [], L = Math.round(dist2), obsL = 'distância quadro→medidor (' + L + ' m)';
+    pad.push(R('disj_medidor', 'Disjuntor do medidor ' + linha.disj, 1, 'un', 'sistema ' + fmt(potCA) + ' kW'));
+    pad.push(R('ramal_cu', 'Cabo ramal — Cu ' + linha.cu, L, 'm', obsL));
+    pad.push(R('fn_medidor', 'Cabo F+N do medidor ' + linha.fn, L, 'm', obsL));
+    pad.push(R('pe_medidor', 'Cabo PE do medidor ' + linha.pe, L, 'm', obsL));
+    pad.push(R('barramento', 'Barramento ' + linha.barr, 1, 'un', 'conforme potência'));
+
+    return {
+      tipo: 'padrao', nPlacas: nPlacas, nReq: nPlacas, micros: micros, circuitos: circuitos, potCC: potCC, potCA: potCA,
+      ligacao: ligacao, ligEsc: ligEsc, forcaTri: forcaTri, inst: inst, telh: telh, estr: estr, dist: dist, dist2: dist2,
+      secoes: { kit: kit, mis: mis, pad: pad, sug: [] }
+    };
+  }
+
+  /* =================== PROJETO RÁPIDO =================== */
+  function disjMedidor(v) {
+    var t = C.RAPIDO_DISJ_MEDIDOR;
+    for (var i = 0; i < t.length; i++) if (t[i].disj === v) return t[i];
+    for (i = 0; i < t.length; i++) if (t[i].disj === C.RAPIDO_DISJ_MEDIDOR_PADRAO) return t[i];
+    return t[0];
+  }
+
+  function calcularRapido(e, edicoes) {
+    var F = C.RAPIDO_FIXOS;
+    var modelo = C.RAPIDO_MICROS[e.micro] || C.RAPIDO_MICROS[C.RAPIDO_MICRO_PADRAO];
+    var nReq = inteiro(e.placas);
+    var nPlacas = Math.min(nReq, C.RAPIDO_MAX_PLACAS);
+    var dist = numero(e.dist), dist2 = numero(e.dist2), dist3 = numero(e.dist3);
+    var ligacao = e.lig === 'trifasico' ? 'trifasico' : 'bifasico', tri = ligacao === 'trifasico';
+    var polar = tri ? '3P' : '2P', fases = tri ? 3 : 2;
+    var dm = disjMedidor(e.disjMed), trocar = e.trocarDisj === 'sim';
+    var micros = teto(nPlacas / modelo.placasPorMicro);
+    var circuitos = teto(micros / (modelo.microsPorCircuito || C.MICROS_P_CIRC));
+    var potCC = nPlacas * C.WP_PLACA / 1000, potCA = micros * modelo.w / 1000;
+    var arred = function (x) { return tetoMult(x, C.RAPIDO_ARRED_M); };
+    var folgaPct = '+ ' + Math.round((C.RAPIDO_FOLGA_CABO - 1) * 100) + '%';
+
+    /* KIT GERADOR */
+    var kit = [];
+    kit.push(R('r_micro', 'Microinversor ' + modelo.nome, micros, 'un',
+      'até ' + modelo.placasPorMicro + ' placas por micro · até ' + modelo.microsPorCircuito + ' micros por circuito'));
+    kit.push(R('r_placa', 'Placa solar ' + C.WP_PLACA + ' W', nPlacas, 'un'));
+    kit.push(R('r_estrutura', 'Caixa de estrutura metálica mini trilho alto', teto(nPlacas / C.PLACAS_P_CAIXA), 'cx', '1 a cada ' + C.PLACAS_P_CAIXA + ' placas'));
+    var nMicro = efetiva(edicoes, 'r_micro', micros);
+    kit.push(R('r_suporte', 'Suporte para o micro', nMicro, 'un', '1 por micro · sugestão: metade de um minitrilho'));
+    kit.push(R('r_mc4', 'Par MC4 fêmea + macho — Stäubli', nPlacas * C.MC4_PARES_PLACA, 'par', C.MC4_PARES_PLACA + ' pares por placa · marca Stäubli'));
+    kit.push(R('r_fv_preto', 'Cabo fotovoltaico 4 mm² preto', nPlacas * C.RAPIDO_FV_METROS_PLACA, 'm', C.RAPIDO_FV_METROS_PLACA + ' m por placa'));
+    kit.push(R('r_fv_vermelho', 'Cabo fotovoltaico 4 mm² vermelho', nPlacas * C.RAPIDO_FV_METROS_PLACA, 'm', C.RAPIDO_FV_METROS_PLACA + ' m por placa'));
+    kit.push(R('r_selante', 'Selante PU', teto(nPlacas / C.SELANTE_CADA), 'un', '1 a cada ' + C.SELANTE_CADA + ' placas'));
+    kit.push(R('r_parafuso', 'Parafuso + porca (fixação do micro)', C.RAPIDO_PARAFUSO_P_MICRO * nMicro, 'un', C.RAPIDO_PARAFUSO_P_MICRO + ' por micro'));
+    kit.push(R('r_disj_sist', 'Disjuntor 50A ' + C.RAPIDO_DISJ_SISTEMA_POLOS + ' — sistema', circuitos, 'un', '1 por circuito · sempre ' + C.RAPIDO_DISJ_SISTEMA_POLOS));
+
+    /* MISCELÂNEA */
+    var mis = [], sug = [];
+    mis.push(R('r_haste', 'Haste de aterramento 5/8" 2,40 m', F.haste, 'un', 'padrão'));
+    mis.push(R('r_cord', 'Cabo de cobre nu 50 mm² (cordoalha)', F.cordoalha, 'm', 'padrão'));
+    mis.push(R('r_grampo', 'Grampo de terra GTDU 3/4"', F.grampo, 'un', 'padrão'));
+    mis.push(R('r_bep', 'Barramento BEP Neutro - 14 Bornes 80A', F.bep, 'un', 'padrão'));
+    mis.push(R('r_quadro', 'Quadro do Sistema 12 polos sobrepor', F.quadro, 'un', 'padrão: ' + F.quadro));
+    mis.push(R('r_bloco', 'Bloco de distribuição 80A', fases, 'un', '1 por fase (' + (tri ? 'trifásico: 3' : 'bifásico: 2') + ')'));
+    mis.push(R('r_dps', 'DPS Clamper 175V 45kA', fases, 'un', '1 por fase (' + (tri ? 'trifásico: 3' : 'bifásico: 2') + ')'));
+    var disjMed = R('r_disj_med', 'Disjuntor ' + dm.disj + ' ' + polar + ' — medidor', F.disjMedidor, 'un',
+      trocar ? 'troca do disjuntor do padrão de entrada' : 'padrão de entrada com ' + dm.disj + ' — adicione se for trocar');
+    (trocar ? mis : sug).push(disjMed);
+    mis.push(R('r_eletroduto', 'Eletroduto cinza de PVC 3/4"', F.eletroduto, 'un', 'padrão'));
+    var nEletro = efetiva(edicoes, 'r_eletroduto', F.eletroduto);
+    mis.push(R('r_luva', 'Luva p/ eletroduto cinza de PVC 3/4"', 2 * nEletro, 'un', '2 por eletroduto'));
+    var somaDist = dist + dist2 + dist3, base = C.RAPIDO_PEVEDUTO_BASE;
+    var pev = somaDist <= base ? base : arred(base + (somaDist - base) * C.RAPIDO_PEVEDUTO_FATOR);
+    mis.push(R('r_peveduto', 'Peveduto 3/4"', pev, 'm', somaDist <= base
+      ? 'padrão: ' + base + ' m (soma das distâncias ' + fmt(somaDist) + ' m)'
+      : base + ' m + ' + fmt(C.RAPIDO_PEVEDUTO_FATOR) + ' × ' + fmt(somaDist - base) + ' m acima de ' + base + ' m (soma das distâncias ' + fmt(somaDist) + ' m)'));
+    mis.push(R('r_condulete', 'Condulete cinza de PVC 3/4"', F.condulete, 'un', 'padrão'));
+    var nCond = efetiva(edicoes, 'r_condulete', F.condulete);
+    mis.push(R('r_adaptador', 'Adaptador p/ condulete cinza de PVC 3/4"', nCond, 'un', '1 por condulete'));
+    mis.push(R('r_tampa', 'Tampa p/ condulete cinza de PVC 3/4"', nCond, 'un', '1 por condulete'));
+    mis.push(R('r_abracadeira', 'Abraçadeira com cunha p/ eletroduto cinza de PVC 3/4"', C.RAPIDO_ABRACADEIRA_P_ELETRODUTO * nEletro, 'un', C.RAPIDO_ABRACADEIRA_P_ELETRODUTO + ' por eletroduto'));
+    // Medidor → Quadro do Sistema: bitola pelo disjuntor do medidor, fases + neutro
+    var condMed = fases + 1;
+    mis.push(R('r_cabo_medidor', 'Cabo cobre ' + dm.cabo + ' — medidor → Quadro do Sistema', arred(dist2 * condMed * C.RAPIDO_FOLGA_CABO), 'm',
+      fmt(dist2) + ' m × ' + condMed + ' cabos (' + fases + ' fases + neutro) ' + folgaPct + ' · bitola do disjuntor ' + dm.disj));
+    var xCirc = circuitos > 1 ? ' × ' + circuitos + ' circuitos' : '';
+    mis.push(R('r_cabo_1kv', 'Cabo cobre 6 mm² 1kV — Quadro do Sistema → placas', arred(dist * C.RAPIDO_CABOS_CIRC * circuitos * C.RAPIDO_FOLGA_CABO), 'm',
+      fmt(dist) + ' m × ' + C.RAPIDO_CABOS_CIRC + ' cabos' + xCirc + ' ' + folgaPct));
+    var pernas = C.RAPIDO_PERNAS_ATERRAMENTO;
+    mis.push(R('r_cabo_verde', 'Cabo cobre 6 mm² 750V — verde', arred((pernas * dist3 + dist) * C.RAPIDO_FOLGA_CABO), 'm',
+      '(' + pernas + ' pernas × Quadro do Sistema→aterramento ' + fmt(dist3) + ' m + Quadro do Sistema→placas ' + fmt(dist) + ' m) ' + folgaPct));
+    mis.push(R('r_placa_ger', 'Placa de geração', F.placaGeracao, 'un', 'padrão'));
+    mis.push(R('r_seal', 'Seal Tubo (cabos no telhado)', arred(somaDist * C.RAPIDO_SEAL_FRACAO), 'm',
+      Math.round(C.RAPIDO_SEAL_FRACAO * 100) + '% da distância total (' + fmt(somaDist) + ' m)'));
+    mis.push(R('r_tubular', 'Terminal tubular 6 mm', F.tubular, 'un', 'padrão'));
+    mis.push(R('r_saco_entulho', 'Saco de entulho', F.sacoEntulho, 'un', 'por obra'));
+
+    /* SUGESTÕES — ficam fora da lista até o usuário adicionar */
+    sug.push(R('r_disj_cliente', 'Disjuntor 50A ' + polar + ' — quadro do cliente', F.disjCliente, 'un', 'adicione se o quadro do cliente precisar'));
+    // Sugestões aceitas entram no fim da Miscelânea, com o mesmo id
+    var aceitas = (edicoes && edicoes.aceitas) || [];
+    sug = sug.filter(function (r) {
+      if (aceitas.indexOf(r.id) < 0) return true;
+      mis.push(Object.assign({}, r, { obs: 'sugestão adicionada', sugerido: true }));
+      return false;
+    });
+
+    return {
+      tipo: 'rapido', nPlacas: nPlacas, nReq: nReq, micros: micros, circuitos: circuitos, potCC: potCC, potCA: potCA,
+      ligacao: ligacao, ligEsc: ligacao, forcaTri: false, micro: modelo, dist: dist, dist2: dist2, dist3: dist3,
+      disjMedidor: dm, trocarDisj: trocar,
+      secoes: { kit: kit, mis: mis, pad: [], sug: sug }
+    };
+  }
+
+  /* =================== API =================== */
+  GLM.calcular = function (entrada, edicoes) {
+    return entrada.tipo === 'rapido' ? calcularRapido(entrada, edicoes) : calcularPadrao(entrada);
+  };
+  // Nomes das seções por tipo de projeto (também usados no CSV)
+  GLM.SECOES = {
+    padrao: [{ key: 'kit', nome: 'Kit Solar' }, { key: 'mis', nome: 'Miscelâneas' }, { key: 'pad', nome: 'Padrão de entrada' }],
+    rapido: [{ key: 'kit', nome: 'Kit Gerador' }, { key: 'mis', nome: 'Miscelânea' }]
+  };
+  // Seção de sugestões (fora da lista, CSV e impressão até o usuário adicionar)
+  GLM.SECAO_SUGESTOES = { key: 'sug', nome: 'Sugestões para adicionar'
+  };
+  GLM.util = { fmt: fmt, teto5: teto5, dimensionarEletroduto: dimensionarEletroduto };
+})(typeof window !== 'undefined' ? window : this);
+
+</script>
+<script>
+/* js/ui.js */
+/* =====================================================================
+   INTERFACE — lê o formulário, chama GLM.calcular e desenha a lista.
+   Guarda as edições do usuário (por tipo de projeto) no localStorage.
+   ===================================================================== */
+(function () {
+  var C = GLM.config, fmt = GLM.util.fmt;
+  var CHAVE_STORAGE = 'lms_v3';
+  // Versão publicada no claude.ai (empacotar.py --publicar): sem impressão, CSV pela capacidade "downloads"
+  var PUBLICADO = !!window.GLM_PUBLICADO;
+  var downloads = PUBLICADO && window.claude && window.claude.use
+    ? window.claude.use('downloads').catch(function () { return null; }) : Promise.resolve(null);
+
+  /* ---------- estado editável ---------- */
+  var overrides = {};                       // { id: quantidade fixada }
+  var extras = { kit: [], mis: [], pad: [] }; // materiais adicionados manualmente
+  var hidden = [];                          // ids de itens automáticos removidos
+  var aceitas = [];                         // ids de sugestões levadas para a lista (Rápido)
+  var modo = 'padrao', store = {};          // edições separadas por tipo de projeto
+  var ultimo = null;                        // último cálculo + linhas mescladas
+
+  function $(sel, ctx) { return (ctx || document).querySelector(sel); }
+  function $$(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
+  function val(id) { return document.getElementById(id).value; }
+  function radio(name) { var e = $('input[name="' + name + '"]:checked'); return e ? e.value : ''; }
+  function numval(n) { return Number.isInteger(n) ? n : Math.round(n * 100) / 100; }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+  }
+
+  /* ---------- persistência ---------- */
+  // Dados da obra também são salvos: as edições só fazem sentido junto com eles
+  var CAMPOS = ['placas', 'dist', 'dist2', 'dist3', 'micro', 'disjMed'], RADIOS = ['lig', 'inst', 'telh', 'estr', 'trocar'];
+  function lerFormulario() {
+    var f = {};
+    CAMPOS.forEach(function (id) { f[id] = val(id); });
+    RADIOS.forEach(function (n) { f[n] = radio(n); });
+    return f;
+  }
+  function aplicarFormulario(f) {
+    if (!f) return;
+    CAMPOS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (f[id] === undefined) return;
+      if (el.tagName === 'SELECT' && !el.querySelector('option[value="' + f[id] + '"]')) return;
+      el.value = f[id];
+    });
+    RADIOS.forEach(function (n) { var r = $('input[name="' + n + '"][value="' + f[n] + '"]'); if (r) r.checked = true; });
+  }
+  function salvar() {
+    store[modo] = estadoAtual();
+    try { localStorage.setItem(CHAVE_STORAGE, JSON.stringify({ modo: modo, store: store, form: lerFormulario() })); } catch (e) {}
+  }
+  function carregar() {
+    try {
+      var s = JSON.parse(localStorage.getItem(CHAVE_STORAGE));
+      if (s) { store = s.store || {}; modo = s.modo === 'rapido' ? 'rapido' : 'padrao'; aplicarFormulario(s.form); }
+    } catch (e) {}
+    aplicarModo(modo);
+    var r = $('input[name="tipo"][value="' + modo + '"]'); if (r) r.checked = true;
+  }
+  function estadoAtual() { return { overrides: overrides, extras: extras, hidden: hidden, aceitas: aceitas }; }
+  function aplicarModo(m) {
+    modo = m; var s = store[m] || {};
+    overrides = s.overrides || {};
+    extras = Object.assign({ kit: [], mis: [], pad: [] }, s.extras || {});
+    hidden = s.hidden || [];
+    aceitas = s.aceitas || [];
+  }
+
+  /* ---------- entrada do formulário ---------- */
+  function lerEntrada() {
+    var tipo = radio('tipo') === 'rapido' ? 'rapido' : 'padrao';
+    var e = { tipo: tipo, placas: val('placas'), lig: radio('lig'), dist: val('dist'), dist2: val('dist2') };
+    if (tipo === 'rapido') { e.dist3 = val('dist3'); e.micro = val('micro'); e.disjMed = val('disjMed'); e.trocarDisj = radio('trocar'); }
+    else { e.inst = radio('inst'); e.telh = radio('telh'); e.estr = radio('estr'); }
+    return e;
+  }
+
+  /* ---------- mescla cálculo + edições + avulsos ---------- */
+  function mesclar(key, base) {
+    var out = base.filter(function (r) { return hidden.indexOf(r.id) < 0; }).map(function (r) {
+      var ov = overrides[r.id];
+      return Object.assign({}, r, {
+        kind: 'base', section: key, computed: r.qtd,
+        qtd: ov !== undefined ? +ov : r.qtd,
+        edited: ov !== undefined && +ov !== +r.qtd, sugerido: !!r.sugerido
+      });
+    });
+    (extras[key] || []).forEach(function (x) {
+      out.push({ id: x.id, item: x.item, qtd: +x.qtd, un: x.un, obs: x.obs || 'adicionado', confirmar: false, kind: 'extra', section: key, edited: false });
+    });
+    return out;
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    var t = radio('tipo') === 'rapido' ? 'rapido' : 'padrao';
+    if (t !== modo) { store[modo] = estadoAtual(); aplicarModo(t); }
+    var rap = modo === 'rapido';
+    document.body.classList.toggle('rapido', rap);
+    document.getElementById('placas').max = rap ? C.RAPIDO_MAX_PLACAS : '';
+    $('#eyebrow').textContent = rap ? 'Ficha de obra · Projeto Rápido' : 'Ficha de obra · micro inversor';
+    var modeloNome = rap ? $('#micro').selectedOptions[0].textContent : '';
+    $('#subtitulo').textContent = rap
+      ? 'Até ' + C.RAPIDO_MAX_PLACAS + ' placas · micro ' + modeloNome + ' · Kit Gerador + Miscelânea — editável e com materiais avulsos'
+      : 'Gera Kit Solar · Miscelâneas · Padrão de entrada — editável e com materiais avulsos';
+
+    var d = GLM.calcular(lerEntrada(), { overrides: overrides, hidden: hidden, aceitas: aceitas });
+    if (rap) $('#hint-micro').textContent = d.micro.placasPorMicro + ' placas por micro · até ' + d.micro.microsPorCircuito + ' micros por circuito (disjuntor 50A + cabo 6 mm² 1kV).';
+
+    var bi = $('input[name="lig"][value="bifasico"]'), tri = $('input[name="lig"][value="trifasico"]');
+    bi.disabled = d.forcaTri; if (d.forcaTri) tri.checked = true;
+
+    var ligTxt = d.ligacao === 'trifasico' ? 'Trifásico' : 'Bifásico';
+    $('#readout').innerHTML =
+      cell('Placas', d.nPlacas, '', true) + cell('Potência CC', fmt(d.potCC), 'kWp') + cell('Potência CA', fmt(d.potCA), 'kW') +
+      cell('Micro inversores', d.micros, '') + cell('Circuitos', d.circuitos, '') + cell('Ligação', ligTxt, '');
+
+    var avisos = [];
+    if (d.nPlacas === 0 && d.nReq === 0)
+      avisos.push('<b>Informe a quantidade de placas.</b>&nbsp;Com 0 placas a lista mostra só os itens fixos.');
+    if (rap && d.nReq > C.RAPIDO_MAX_PLACAS)
+      avisos.push('<b>Projeto Rápido vai até ' + C.RAPIDO_MAX_PLACAS + ' placas.</b>&nbsp;Você informou ' + d.nReq +
+        '; a lista foi calculada com ' + C.RAPIDO_MAX_PLACAS + '. Para mais placas, use o tipo Padrão.');
+    if (d.forcaTri && d.ligEsc === 'bifasico') {
+      var motivo = d.micros >= C.TRI_MIN_MICROS ? d.micros + ' micros (≥ ' + C.TRI_MIN_MICROS + ')' : d.circuitos + ' circuitos (> ' + C.TRI_MAX_CIRC_BI + ')';
+      avisos.push('<b>Ligação ajustada para trifásico.</b>&nbsp;Motivo: ' + motivo + '. O cliente não pode ser bifásico nesta configuração.');
+    }
+    if (d.potCA > C.LIMITE_MICROGERACAO_KW)
+      avisos.push('<b>Potência CA de ' + fmt(d.potCA) + ' kW passa de ' + C.LIMITE_MICROGERACAO_KW + ' kW (limite da microgeração).</b>&nbsp;' +
+        'A tabela do padrão de entrada vai só até ' + C.LIMITE_MICROGERACAO_KW + ' kW e os itens dessa seção usam a última linha. Confira com a engenharia.');
+    var warn = $('#warn');
+    warn.innerHTML = avisos.map(function (a) { return '<div>' + a + '</div>'; }).join('');
+    warn.classList.toggle('show', avisos.length > 0);
+
+    // Conta só os itens removidos que existem na configuração atual
+    var idsAtuais = {};
+    ['kit', 'mis', 'pad'].forEach(function (k) { d.secoes[k].forEach(function (r) { idsAtuais[r.id] = 1; }); });
+    var nOcultos = hidden.filter(function (id) { return idsAtuais[id]; }).length;
+    var hb = $('#hiddenbar');
+    if (nOcultos) {
+      hb.innerHTML = '<span>' + nOcultos + ' item(ns) automático(s) excluído(s) da lista.</span><button data-acao="restaurar">Restaurar todos</button>';
+      hb.classList.add('show');
+    } else hb.classList.remove('show');
+
+    var merged = {};
+    GLM.SECOES[modo].forEach(function (s, i) {
+      merged[s.key] = mesclar(s.key, d.secoes[s.key]);
+      var sec = $('section[data-sec="' + s.key + '"]');
+      $('.sec-nome', sec).textContent = s.nome;
+      $('.lbl', sec).textContent = 'Adicionar material — ' + s.nome;
+      preencherTabela(sec, merged[s.key]);
+    });
+    ultimo = { d: d, merged: merged };
+    preencherSugestoes(d.secoes.sug);
+
+    $('#premissas').innerHTML = rap ? premissasRapido(d) : premissasPadrao();
+    salvar();
+  }
+
+  function cell(k, v, u, hero) {
+    return '<div class="cell ' + (hero ? 'hero' : '') + '"><div class="k">' + k + '</div><div class="v">' + v + (u ? ' <small>' + u + '</small>' : '') + '</div></div>';
+  }
+
+  function preencherTabela(sec, rows) {
+    $('tbody', sec).innerHTML = rows.map(function (r) {
+      var cls = (r.confirmar ? 'assume ' : '') + (r.kind === 'extra' ? 'extra ' : '') + (r.edited ? 'edited' : '');
+      var badge = r.edited ? '<span class="badge ed">editado</span>' : r.kind === 'extra' ? '<span class="badge ex">avulso</span>' : '';
+      var ref = ' data-sec="' + r.section + '" data-kind="' + r.kind + '" data-id="' + esc(r.id) + '"';
+      var stepper = '<div class="stepper">' +
+        '<button title="Diminuir" data-acao="menos"' + ref + '>−</button>' +
+        '<input type="number" step="1" min="0" value="' + numval(r.qtd) + '" data-acao="qtd"' + ref + '>' +
+        '<button title="Aumentar" data-acao="mais"' + ref + '>+</button></div>';
+      var tools = '';
+      if (r.kind === 'extra') tools = '<button class="tool rm" title="Remover" data-acao="remover"' + ref + '>✕</button>';
+      else {
+        if (r.edited) tools += '<button class="tool" title="Voltar ao calculado (' + numval(r.computed) + ')" data-acao="voltar"' + ref + '>↺</button>';
+        tools += '<button class="tool rm" title="Remover da lista" data-acao="remover"' + ref + '>✕</button>';
+      }
+      return '<tr class="' + cls.trim() + '">' +
+        '<td class="item">' + esc(r.item) + badge + (r.obs ? '<span class="obs">' + esc(r.obs) + '</span>' : '') + '</td>' +
+        '<td class="q">' + stepper + '</td><td class="u">' + esc(r.un) + '</td><td class="a">' + tools + '</td></tr>';
+    }).join('');
+    $('.count', sec).textContent = rows.length + ' itens';
+  }
+
+  function preencherSugestoes(rows) {
+    var sec = $('section[data-sec="sug"]');
+    $('.sec-nome', sec).textContent = GLM.SECAO_SUGESTOES.nome;
+    $('.count', sec).textContent = rows.length + ' itens';
+    sec.classList.toggle('vazia', rows.length === 0);
+    $('tbody', sec).innerHTML = rows.map(function (r) {
+      var ov = overrides[r.id], q = ov !== undefined ? +ov : r.qtd;
+      return '<tr><td class="item">' + esc(r.item) + (r.obs ? '<span class="obs">' + esc(r.obs) + '</span>' : '') + '</td>' +
+        '<td class="q">' + numval(q) + '</td><td class="u">' + esc(r.un) + '</td>' +
+        '<td class="a"><button class="btn-sug" data-acao="aceitar" data-id="' + esc(r.id) + '">+ Adicionar</button></td></tr>';
+    }).join('');
+  }
+
+  function premissasRapido(d) {
+    var m = d.micro, folga = Math.round((C.RAPIDO_FOLGA_CABO - 1) * 100) + '%', F = C.RAPIDO_FIXOS;
+    return '<b>Projeto Rápido — premissas e regras.</b> Até ' + C.RAPIDO_MAX_PLACAS + ' placas de ' + C.WP_PLACA + ' W · microinversor ' + m.nome +
+      ' · ' + m.placasPorMicro + ' placas/micro · até ' + m.microsPorCircuito + ' micros/circuito. ' +
+      'Estrutura metálica mini trilho alto 1 caixa a cada ' + C.PLACAS_P_CAIXA + ' placas · suporte 1 por micro · parafuso + porca ' + C.RAPIDO_PARAFUSO_P_MICRO +
+      ' por micro · MC4 Stäubli ' + C.MC4_PARES_PLACA + ' pares/placa · cabo FV 4 mm² ' + C.RAPIDO_FV_METROS_PLACA + ' m/placa (cada cor) · selante PU 1 a cada ' +
+      C.SELANTE_CADA + ' placas · disjuntor do sistema 50A-' + C.RAPIDO_DISJ_SISTEMA_POLOS + ', 1 por circuito. ' +
+      F.quadro + ' Quadros do Sistema 12 polos. Blocos de distribuição e DPS: 1 por fase. Eletroduto cinza de PVC e acessórios: luvas = 2 por eletroduto; abraçadeira com cunha = ' +
+      C.RAPIDO_ABRACADEIRA_P_ELETRODUTO + ' por eletroduto; adaptador e tampa = 1 por condulete (seguem a quantidade de eletrodutos/conduletes, inclusive se você editar). ' +
+      'Peveduto = ' + C.RAPIDO_PEVEDUTO_BASE + ' m; se a soma das três distâncias passar de ' + C.RAPIDO_PEVEDUTO_BASE + ' m, soma ' + fmt(C.RAPIDO_PEVEDUTO_FATOR) + ' m por metro a mais. ' +
+      'Cabo medidor → Quadro do Sistema = distância × (fases + neutro) + ' + folga + ', bitola pelo disjuntor do padrão de entrada; ' +
+      'cabo 6 mm² 1kV = Quadro do Sistema → placas × ' + C.RAPIDO_CABOS_CIRC + ' cabos por circuito + ' + folga + '; cabo verde = (' + C.RAPIDO_PERNAS_ATERRAMENTO +
+      ' pernas × Quadro do Sistema → aterramento + Quadro do Sistema → placas) + ' + folga + '; Seal Tubo = ' + Math.round(C.RAPIDO_SEAL_FRACAO * 100) +
+      '% da soma das três distâncias. Metragens por distância são arredondadas para cima no múltiplo de ' + C.RAPIDO_ARRED_M + ' m. ' +
+      F.sacoEntulho + ' sacos de entulho por obra. Disjuntor do medidor (se não for trocado) e disjuntor do quadro do cliente ficam nas sugestões: 2P no bifásico e 3P no trifásico. ' + legenda() +
+      ' As edições do Projeto Rápido ficam salvas separadas das do tipo Padrão.';
+  }
+  function premissasPadrao() {
+    return '<b>Premissas e regras.</b> Placa ' + C.WP_PLACA + ' Wp · micro ' + fmt(C.W_MICRO / 1000) + ' kW · ' + C.PLACAS_P_MICRO + ' placas/micro · ' +
+      C.MICROS_P_CIRC + ' micros/circuito · ' + C.MC4_PARES_PLACA + ' pares MC4/placa · ' + fmt(C.PADRAO_FV_METROS_PLACA) + ' m de cabo FV (cada cor)/placa (total arredondado para cima) · cabo tronco = distância + ' +
+      C.TRONCO_P_CIRC + ' m por circuito. Quadro 12 DIN PVC para blocos de distribuição e DPS. Cabos do padrão de entrada pela distância quadro→medidor. ' +
+      'Trifásico obrigatório a partir de ' + C.TRI_MIN_MICROS + ' micros ou mais de ' + C.TRI_MAX_CIRC_BI + ' circuitos. ' +
+      'Estrutura laje adiciona sikadur (1 a cada ' + C.SIKADUR_CADA +
+      ' placas). Barramento BEP sempre nas miscelâneas. Eletroduto (sobrepor): polegada calculada pela taxa de ocupação NBR 5410 (1 cabo 53%, 2 cabos 31%, 3+ cabos 40%) ' +
+      'para os condutores do tronco 6 mm² — F+N+T (bifásico) ou 3F+N+T (trifásico) por circuito. ' + legenda() +
+      ' Edite qualquer quantidade nos botões − / +; use ↺ para voltar ao valor calculado e × para remover um item. As edições ficam salvas neste navegador.';
+  }
+  function legenda() {
+    return 'Linhas <span style="background:#fffdf5;border:1px solid var(--line);padding:0 4px">amarelas</span> = premissas a confirmar; ' +
+      '<span style="background:#f2f7f5;border:1px solid var(--line);padding:0 4px">verdes</span> = itens adicionados por você.';
+  }
+
+  /* ---------- edição ---------- */
+  function linha(sec, kind, id) {
+    var rows = (ultimo && ultimo.merged[sec]) || [];
+    for (var i = 0; i < rows.length; i++) if (rows[i].id === id && rows[i].kind === kind) return rows[i];
+  }
+  function setQty(sec, kind, id, valor) {
+    var v = parseFloat(String(valor).replace(',', '.')); if (isNaN(v) || v < 0) v = 0;
+    if (kind === 'base') {
+      var r = linha(sec, kind, id), comp = r ? r.computed : 0;
+      if (v === +comp) delete overrides[id]; else overrides[id] = v;
+    } else {
+      var x = extras[sec].filter(function (e) { return e.id === id; })[0]; if (x) x.qtd = v;
+    }
+    render();
+  }
+  function addExtra(sec) {
+    var bar = $('section[data-sec="' + sec + '"] .addbar');
+    var nome = $('.add-name', bar).value.trim();
+    var qtd = parseFloat(String($('.add-qtd', bar).value).replace(',', '.')) || 0;
+    var un = $('.add-un', bar).value.trim() || 'un';
+    if (!nome) { $('.add-name', bar).focus(); return; }
+    extras[sec].push({ id: 'x' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), item: nome, qtd: qtd, un: un, obs: 'adicionado' });
+    $('.add-name', bar).value = ''; $('.add-qtd', bar).value = 1; $('.add-un', bar).value = 'un';
+    render(); $('.add-name', bar).focus();
+  }
+  // Confirmação na própria página (o confirm() do navegador não funciona na página publicada)
+  var limparTimer = null;
+  function limparEdicoes() {
+    var b = $('#btn-limpar');
+    if (!limparTimer) {
+      b.textContent = 'Confirmar: limpar tudo?'; b.classList.add('confirmar');
+      b.title = 'Remove edições de quantidade, materiais e sugestões adicionados e restaura os itens excluídos';
+      limparTimer = setTimeout(voltarBotaoLimpar, 4000);
+      return;
+    }
+    voltarBotaoLimpar();
+    overrides = {}; extras = { kit: [], mis: [], pad: [] }; hidden = []; aceitas = []; render();
+  }
+  function voltarBotaoLimpar() {
+    clearTimeout(limparTimer); limparTimer = null;
+    var b = $('#btn-limpar'); b.textContent = 'Limpar edições'; b.classList.remove('confirmar'); b.title = '';
+  }
+
+  /* ---------- CSV ---------- */
+  function exportarCSV() {
+    var d = ultimo.d;
+    var linhas = [['Seção', 'Item', 'Qtd', 'Un', 'Obs', 'Origem']];
+    GLM.SECOES[d.tipo].forEach(function (s) {
+      ultimo.merged[s.key].forEach(function (r) {
+        linhas.push([s.nome, r.item, numval(r.qtd), r.un, r.obs, r.kind === 'extra' ? 'avulso' : (r.edited ? 'editado' : 'automático')]);
+      });
+    });
+    var head = d.tipo === 'rapido'
+      ? '# Projeto Rápido - ' + d.nPlacas + ' placas | micro ' + d.micro.nome + ' | ' + fmt(d.potCA) + ' kW | ' + d.micros + ' micros | ' + d.circuitos + ' circuito(s) | ' +
+        d.ligacao + ' | disjuntor do medidor ' + d.disjMedidor.disj + (d.trocarDisj ? ' (trocar)' : ' (manter)') + ' | placas->Quadro do Sistema ' + d.dist + 'm | Quadro do Sistema->medidor ' + d.dist2 + 'm | Quadro do Sistema->aterramento ' + d.dist3 + 'm'
+      : '# Lista de materiais - ' + d.nPlacas + ' placas | ' + fmt(d.potCC) + ' kWp | ' + d.micros + ' micros | ' + d.circuitos + ' circuitos | ' + d.ligacao +
+        ' | telhado ' + d.telh + ' | estrutura ' + d.estr + ' | ' + d.inst + ' | placas->quadro ' + d.dist + 'm | quadro->medidor ' + d.dist2 + 'm';
+    var csv = head + '\n' + linhas.map(function (l) {
+      return l.map(function (c) { var s = String(c).replace(/"/g, '""'); return /[",;\n]/.test(s) ? '"' + s + '"' : s; }).join(';');
+    }).join('\n');
+    var nome = (d.tipo === 'rapido' ? 'projeto-rapido-' : 'lista-materiais-') + d.nPlacas + 'placas.csv';
+    var conteudo = '\uFEFF' + csv;
+    if (PUBLICADO) {
+      // Na página publicada o download passa pela confirmação do próprio claude.ai
+      downloads.then(function (dl) {
+        if (!dl) return aviso('Não foi possível baixar o CSV nesta visualização.');
+        return dl.save({ filename: nome, data: conteudo }).catch(function (e) {
+          if (e && e.code !== 'declined') aviso('O CSV não foi baixado (' + (e.code || 'erro') + '). Tente de novo em alguns segundos.');
+        });
+      });
+      return;
+    }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([conteudo], { type: 'text/csv;charset=utf-8' }));
+    a.download = nome;
+    a.click();
+  }
+  function aviso(msg) {
+    var el = $('#aviso-acao'); el.textContent = msg; el.hidden = false;
+    clearTimeout(aviso.t); aviso.t = setTimeout(function () { el.hidden = true; }, 6000);
+  }
+
+  /* ---------- eventos ---------- */
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-acao]'); if (!b) return;
+    var sec = b.dataset.sec, kind = b.dataset.kind, id = b.dataset.id, r;
+    switch (b.dataset.acao) {
+      case 'menos': case 'mais':
+        r = linha(sec, kind, id); if (r) setQty(sec, kind, id, (+r.qtd) + (b.dataset.acao === 'mais' ? 1 : -1)); break;
+      case 'voltar': delete overrides[id]; render(); break;
+      case 'remover':
+        r = linha(sec, kind, id);
+        if (kind === 'extra') extras[sec] = extras[sec].filter(function (x) { return x.id !== id; });
+        else if (r && r.sugerido) aceitas = aceitas.filter(function (x) { return x !== id; }); // volta para as sugestões
+        else if (hidden.indexOf(id) < 0) hidden.push(id);
+        render(); break;
+      case 'restaurar': hidden = []; render(); break;
+      case 'aceitar':
+        if (aceitas.indexOf(id) < 0) aceitas.push(id);
+        hidden = hidden.filter(function (x) { return x !== id; });
+        render(); break;
+    }
+  });
+  document.addEventListener('change', function (ev) {
+    var t = ev.target;
+    if (t.dataset && t.dataset.acao === 'qtd') setQty(t.dataset.sec, t.dataset.kind, t.dataset.id, t.value);
+  });
+  $$('.add-btn').forEach(function (b) { b.addEventListener('click', function () { addExtra(b.closest('section').dataset.sec); }); });
+  $$('.add-name, .add-qtd, .add-un').forEach(function (inp) {
+    inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') addExtra(inp.closest('section').dataset.sec); });
+  });
+  $('#btn-limpar').addEventListener('click', limparEdicoes);
+  if (PUBLICADO) $('#btn-imprimir').hidden = true;
+  else $('#btn-imprimir').addEventListener('click', function () { window.print(); });
+  $('#btn-csv').addEventListener('click', exportarCSV);
+
+  /* ---------- inicialização ---------- */
+  $('#catalogo').innerHTML = GLM.CATALOGO.map(function (n) { return '<option value="' + esc(n) + '">'; }).join('');
+  $('#micro').innerHTML = Object.keys(C.RAPIDO_MICROS).map(function (k) {
+    return '<option value="' + k + '"' + (k === C.RAPIDO_MICRO_PADRAO ? ' selected' : '') + '>' + esc(C.RAPIDO_MICROS[k].nome) + '</option>';
+  }).join('');
+  $('#disjMed').innerHTML = C.RAPIDO_DISJ_MEDIDOR.map(function (o) {
+    return '<option value="' + esc(o.disj) + '"' + (o.disj === C.RAPIDO_DISJ_MEDIDOR_PADRAO ? ' selected' : '') + '>' + esc(o.disj + ' → cabo ' + o.cabo) + '</option>';
+  }).join('');
+  $('#hint-dist3').textContent = 'Entra no cabo 6 mm² verde (' + C.RAPIDO_PERNAS_ATERRAMENTO + ' pernas), no peveduto e no Seal Tubo.';
+  $('#lbl-wp').textContent = '(' + C.WP_PLACA + ' Wp)';
+  $('#hint-rapido').textContent = 'Até ' + C.RAPIDO_MAX_PLACAS + ' placas · lista simplificada (Kit Gerador + Miscelânea).';
+  $('#hint-estr').textContent = 'Estrutura laje → sikadur (1 a cada ' + C.SIKADUR_CADA + ' placas).';
+  $('#hint-tronco').textContent = 'Cabo tronco (+' + C.TRONCO_P_CIRC + ' m por circuito) e eletrodutos.';
+  $('#hint-tri').textContent = 'A partir de ' + C.TRI_MIN_MICROS + ' micros ou mais de ' + C.TRI_MAX_CIRC_BI + ' circuitos o sistema passa a trifásico automaticamente.';
+  carregar();
+  $$('aside input, aside select').forEach(function (el) { el.addEventListener('input', render); el.addEventListener('change', render); });
+  render();
+})();
+
+</script>
+</body>
+</html>
